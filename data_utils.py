@@ -17,13 +17,15 @@ class MusicDataset(Dataset):
         self._get_data()
 
     def _get_data(self):
-        for genre in os.listdir(self.data_dir):
+        self.map_genre = {}
+        for l, genre in enumerate(os.listdir(self.data_dir)):
+            self.map_genre[genre] = l
             genre_dir = os.path.join(self.data_dir, genre)
+            self.genres.append(genre)
             for song in os.listdir(genre_dir):
                 song_path = os.path.join(genre_dir, song)
                 self.data.append(song_path)
-                self.labels.append(genre)
-                self.genres.append(genre)
+                self.labels.append(l)
         self.data = np.array(self.data)
         self.labels = np.array(self.labels)
         self.genres = np.array(self.genres)
@@ -34,11 +36,15 @@ class MusicDataset(Dataset):
     def __getitem__(self, idx):
         song_path = self.data[idx]
         label = self.labels[idx]
-        genre = self.genres[idx]
-        song = Image(song_path)
+        song = Image.open(song_path)
+        im_matrix = np.array(song)
+        if im_matrix.shape[2] == 4:
+            song = song.convert('RGB')
+        im_matrix = np.array(song)
         if self.transform:
             song = self.transform(song)
-        return song, label, genre
+        # item = {"pixel_values": song, "labels": torch.LongTensor(label)}
+        return song, label
 
 def split_dataset(dataset, proportion = [0.8, 0.1, 0.1]):
     train_size = int(proportion[0] * len(dataset))
